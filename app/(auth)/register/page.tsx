@@ -9,10 +9,11 @@ import { useAuth } from "@/context/AuthContext";
 import { RegisterPayload } from "@/types/auth.types";
 import ConfirmPhoneModal from "@/components/ConfirmPhoneModal";
 
+// Payload inicial vacío para el formulario
 const EMPTY: RegisterPayload = {
   nombre: "",
   apellido: "",
-  sexo: "",
+  sexo: "M",
   fechaNacimiento: "",
   correo: "",
   telefono: "",
@@ -101,6 +102,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  // Maneja cambios en inputs y selects, actualiza estado y limpia errores
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
@@ -108,6 +110,7 @@ export default function RegisterPage() {
     setApiError(null);
   };
 
+  // Función de validación devuelve un objeto con errores por campo
   const validate = (): FormErrors => {
     const e: FormErrors = {};
     if (!form.nombre.trim()) e.nombre = "El nombre es requerido";
@@ -137,7 +140,7 @@ export default function RegisterPage() {
     return e;
   };
 
-  // Al hacer click en "Siguiente" — valida y muestra modal
+  // Al hacer click en "Siguiente"  valida y muestra modal
   const handleNextClick = (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();

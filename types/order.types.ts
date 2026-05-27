@@ -20,47 +20,45 @@ export interface CreateOrderPayload {
   direccionDestinatario: string;
   departamento: string;
   municipio: string;
-  puntoReferencia: string;
-  indicaciones: string;
+  puntoReferencia?: string;
+  indicaciones?: string;
   paquetes: Paquete[];
-}
-
-export interface OrdenResponse {
-  numeroOrden: number;
-  direccionRecoleccion: string;
-  fechaProgramada: string;
-  nombres: string;
-  apellidos: string;
-  correo: string;
-  telefono: string;
-  direccionDestinatario: string;
-  departamento: string;
-  municipio: string;
-  puntoReferencia: string;
-  indicaciones: string;
-  cantidadPaquetes: number;
-  paquetes: PaqueteResponse[];
-  creadoEn: string;
 }
 
 export interface CreateOrderResponse {
   mensaje: string;
-  orden: OrdenResponse;
-}
-
-export interface OrdenHistorial {
-  numeroOrden: number;
-  nombres: string;
-  apellidos: string;
-  departamento: string;
-  municipio: string;
-  cantidadPaquetes: number;
-  creadoEn: string;
+  orden: {
+    numeroOrden: number;
+    direccionRecoleccion: string;
+    fechaProgramada: string;
+    nombres: string;
+    apellidos: string;
+    correo: string;
+    telefono: string;
+    direccionDestinatario: string;
+    departamento: string;
+    municipio: string;
+    puntoReferencia?: string;
+    indicaciones?: string;
+    cantidadPaquetes: number;
+    paquetes: PaqueteResponse[];
+    creadoEn: string;
+  };
 }
 
 export interface OrderHistoryParams {
   fechaInicio?: string;
   fechaFin?: string;
+}
+
+export interface OrderSummary {
+  numeroOrden: number;
+  nombres: string;
+  apellidos: string;
+  departamento: string;
+  municipio: string;
+  cantidadPaquetes: number;
+  creadoEn: string;
 }
 
 export interface OrderHistoryResponse {
@@ -69,5 +67,5 @@ export interface OrderHistoryResponse {
     fechaInicio?: string;
     fechaFin?: string;
   };
-  ordenes: OrdenHistorial[];
+  ordenes: OrderSummary[];
 }

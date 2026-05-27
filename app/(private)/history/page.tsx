@@ -4,22 +4,80 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getOrderHistory } from "@/services/orderService";
 import { OrderHistoryResponse, OrderSummary } from "@/types/order.types";
+import { exportToCsv } from "@/utils/exportCsv";
+
+function TruncatedCell({ text }: { text: string }) {
+  return (
+    <td className="px-4 py-3" style={{ maxWidth: "160px" }}>
+      <span
+        title={text}
+        style={{
+          display: "block",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          fontSize: "13px",
+          color: "#4b5563",
+        }}
+      >
+        {text}
+      </span>
+    </td>
+  );
+}
+
+function getDefaultFechaInicio() {
+  const now = new Date();
+  return `${now.getFullYear()}-01-01`;
+}
+
+function getDefaultFechaFin() {
+  return new Date().toISOString().split("T")[0];
+}
 
 export default function HistorialPage() {
   const { user } = useAuth();
   const [data, setData] = useState<OrderHistoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [fechaInicio, setFechaInicio] = useState("");
-  const [fechaFin, setFechaFin] = useState("");
+
+  // Valores aplicados 
+  const [fechaInicioActiva, setFechaInicioActiva] = useState(
+    getDefaultFechaInicio,
+  );
+  const [fechaFinActiva, setFechaFinActiva] = useState(getDefaultFechaFin);
+
+  // Valores del input 
+  const [fechaInicioInput, setFechaInicioInput] = useState(
+    getDefaultFechaInicio,
+  );
+  const [fechaFinInput, setFechaFinInput] = useState(getDefaultFechaFin);
+
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
+
+  const handleDescargar = () => {
+    const seleccionadas =
+      data?.ordenes.filter((o) => selectedRows.has(o.numeroOrden)) ?? [];
+
+    exportToCsv(
+      seleccionadas.map((o) => ({
+        "No. de orden": o.numeroOrden,
+        Nombre: o.nombres,
+        Apellidos: o.apellidos,
+        Departamento: o.departamento,
+        Municipio: o.municipio,
+        Paquetes: o.cantidadPaquetes,
+      })),
+      "ordenes",
+    );
+  };
 
   useEffect(() => {
     let cancelled = false;
     getOrderHistory({
-      ...(fechaInicio && { fechaInicio }),
-      ...(fechaFin && { fechaFin }),
+      ...(fechaInicioActiva && { fechaInicio: fechaInicioActiva }),
+      ...(fechaFinActiva && { fechaFin: fechaFinActiva }),
     })
       .then((res) => {
         if (!cancelled) {
@@ -30,23 +88,40 @@ export default function HistorialPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          const msg = (err as { message?: string })?.message ?? "Error al cargar historial";
+          const msg =
+            (err as { message?: string })?.message ??
+            "Error al cargar historial";
           setError(msg);
           setLoading(false);
         }
       });
-    return () => { cancelled = true; };
-  }, [fechaInicio, fechaFin]);
+    return () => {
+      cancelled = true;
+    };
+  }, [fechaInicioActiva, fechaFinActiva]);
 
   const handleBuscar = () => {
     setLoading(true);
     setError(null);
+    setFechaInicioActiva(fechaInicioInput);
+    setFechaFinActiva(fechaFinInput);
+    setSelectedRows(new Set());
+    setSelectAll(false);
   };
 
   const handleClear = () => {
-    setFechaInicio("");
-    setFechaFin("");
+    const inicio = getDefaultFechaInicio();
+    const fin = getDefaultFechaFin();
+    setFechaInicioInput(inicio);
+    setFechaFinInput(fin);
+    setFechaInicioActiva(inicio);
+    setFechaFinActiva(fin);
+    setSelectedRows(new Set());
+    setSelectAll(false);
   };
+
+  const hasChanges =
+    fechaInicioInput !== fechaInicioActiva || fechaFinInput !== fechaFinActiva;
 
   const toggleRow = (id: number) => {
     setSelectedRows((prev) => {
@@ -67,7 +142,6 @@ export default function HistorialPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
       {/* Top bar */}
       <div className="bg-white border-b border-gray-100 px-6 md:px-10 py-4 flex items-center justify-between">
         <h1 className="text-base md:text-lg font-semibold text-gray-800">
@@ -82,30 +156,29 @@ export default function HistorialPage() {
 
       {/* Content */}
       <div className="px-6 md:px-10 py-6 md:py-8">
-
         {/* Filtros */}
         <div className="flex flex-wrap items-center gap-3 mb-6">
-
           {/* Rango de fecha */}
           <div
             className="flex items-center gap-2"
             style={{
               background: "#fff",
-              border: "1.5px solid #e5e7eb",
+              border: `1.5px solid ${hasChanges ? "#3b5bdb" : "#e5e7eb"}`,
               borderRadius: "8px",
               padding: "8px 12px",
               boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+              transition: "border-color 0.2s",
             }}
           >
             <input
               type="date"
-              value={fechaInicio}
-              onChange={(e) => setFechaInicio(e.target.value)}
+              value={fechaInicioInput}
+              onChange={(e) => setFechaInicioInput(e.target.value)}
               style={{
                 border: "none",
                 outline: "none",
                 fontSize: "13px",
-                color: fechaInicio ? "#111" : "#9ca3af",
+                color: "#111",
                 background: "transparent",
                 width: "130px",
               }}
@@ -113,13 +186,13 @@ export default function HistorialPage() {
             <span className="text-gray-300">—</span>
             <input
               type="date"
-              value={fechaFin}
-              onChange={(e) => setFechaFin(e.target.value)}
+              value={fechaFinInput}
+              onChange={(e) => setFechaFinInput(e.target.value)}
               style={{
                 border: "none",
                 outline: "none",
                 fontSize: "13px",
-                color: fechaFin ? "#111" : "#9ca3af",
+                color: "#111",
                 background: "transparent",
                 width: "130px",
               }}
@@ -143,27 +216,29 @@ export default function HistorialPage() {
 
           {/* Botón Descargar */}
           <button
-            className="text-sm font-medium text-gray-600 hover:text-gray-800 transition-all"
+            onClick={handleDescargar}
+            disabled={selectedRows.size === 0}
+            className="text-sm font-medium transition-all"
             style={{
               padding: "9px 16px",
               borderRadius: "8px",
               background: "#fff",
               border: "1.5px solid #e5e7eb",
-              cursor: "pointer",
+              cursor: selectedRows.size === 0 ? "not-allowed" : "pointer",
+              color: selectedRows.size === 0 ? "#9ca3af" : "#374151",
+              opacity: selectedRows.size === 0 ? 0.6 : 1,
             }}
           >
             Descargar órdenes
           </button>
 
           {/* Limpiar filtros */}
-          {(fechaInicio || fechaFin) && (
-            <button
-              onClick={handleClear}
-              className="text-sm text-gray-400 hover:text-gray-600 transition-colors underline"
-            >
-              Limpiar filtros
-            </button>
-          )}
+          <button
+            onClick={handleClear}
+            className="text-sm text-gray-400 hover:text-gray-600 transition-colors underline"
+          >
+            Limpiar filtros
+          </button>
         </div>
 
         {/* Error */}
@@ -176,27 +251,57 @@ export default function HistorialPage() {
         {/* Loading */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3 text-gray-400">
-            <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeOpacity="0.25" />
+            <svg
+              className="animate-spin"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                strokeOpacity="0.25"
+              />
               <path d="M21 12a9 9 0 00-9-9" />
             </svg>
             <p className="text-sm">Cargando órdenes…</p>
           </div>
-
         ) : data?.ordenes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-2 text-gray-400">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="40"
+              height="40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
             <p className="text-sm">No hay órdenes en este período</p>
           </div>
-
         ) : (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <table className="w-full" style={{ borderCollapse: "collapse" }}>
+            <table
+              className="w-full"
+              style={{ borderCollapse: "collapse", tableLayout: "fixed" }}
+            >
+              <colgroup>
+                <col style={{ width: "40px" }} />
+                <col style={{ width: "130px" }} />
+                <col style={{ width: "140px" }} />
+                <col style={{ width: "140px" }} />
+                <col style={{ width: "160px" }} />
+                <col style={{ width: "160px" }} />
+                <col style={{ width: "140px" }} />
+              </colgroup>
               <thead>
                 <tr style={{ borderBottom: "1.5px solid #f3f4f6" }}>
-                  <th className="px-4 py-3 text-left" style={{ width: "40px" }}>
+                  <th className="px-4 py-3 text-left">
                     <input
                       type="checkbox"
                       checked={selectAll}
@@ -204,7 +309,13 @@ export default function HistorialPage() {
                       style={{ cursor: "pointer", accentColor: "#3b5bdb" }}
                     />
                   </th>
-                  {["No. de orden", "Nombre", "Apellidos", "Departamento", "Municipio", "Paquetes en orden"].map((col) => (
+                  {[
+                    "No. de orden",
+                    "Nombre",
+                    "Apellidos",
+                    "Departamento",
+                    "Municipio",
+                  ].map((col) => (
                     <th
                       key={col}
                       className="px-4 py-3 text-left text-xs font-semibold text-gray-500"
@@ -213,6 +324,12 @@ export default function HistorialPage() {
                       {col}
                     </th>
                   ))}
+                  <th
+                    className="px-4 py-3 text-center text-xs font-semibold text-gray-500"
+                    style={{ whiteSpace: "nowrap" }}
+                  >
+                    Paquetes en orden
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -239,20 +356,23 @@ export default function HistorialPage() {
                       <td className="px-4 py-3 text-sm font-semibold text-gray-800">
                         {order.numeroOrden}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {order.nombres}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {order.apellidos}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {order.departamento}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {order.municipio}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-green-500 text-center">
-                        {order.cantidadPaquetes}
+                      <TruncatedCell text={order.nombres} />
+                      <TruncatedCell text={order.apellidos} />
+                      <TruncatedCell text={order.departamento} />
+                      <TruncatedCell text={order.municipio} />
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          className="inline-flex items-center justify-center text-xs font-semibold text-green-600"
+                          style={{
+                            background: "#f0fdf4",
+                            border: "1px solid #bbf7d0",
+                            borderRadius: "6px",
+                            padding: "2px 10px",
+                            minWidth: "28px",
+                          }}
+                        >
+                          {order.cantidadPaquetes}
+                        </span>
                       </td>
                     </tr>
                   );
@@ -263,7 +383,5 @@ export default function HistorialPage() {
         )}
       </div>
     </div>
-
-    
   );
 }

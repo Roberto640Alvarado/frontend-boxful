@@ -1,3 +1,13 @@
+export interface LoginPayload {
+  correo: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  nombre: string;
+}
+
 export interface RegisterPayload {
   nombre: string;
   apellido: string;
@@ -17,16 +27,6 @@ export interface RegisterResponse {
   };
 }
 
-export interface LoginPayload {
-  correo: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  access_token: string;
-  nombre: string;
-}
-
 export interface WhoAmIResponse {
   id: string;
   nombre: string;
@@ -36,9 +36,4 @@ export interface WhoAmIResponse {
   telefono: string;
   fechaNacimiento: string;
   createdAt: string;
-}
-
-export interface ApiError {
-  statusCode: number;
-  message: string | string[];
 }

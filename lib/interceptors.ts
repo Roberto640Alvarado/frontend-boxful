@@ -1,10 +1,16 @@
 import apiClient from "@/lib/apiClient";
+import { storage } from "@/lib/storage";
+
+let initialized = false;
 
 export function setupInterceptors() {
-  // ─── REQUEST ────────────────────────────────────────────────────────────────
+  if (initialized) return;
+  initialized = true;
+
+  // ─── REQUEST ──────────────────────────────────────────────────────────────
   apiClient.interceptors.request.use((config) => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("access_token");
+      const token = storage.get("access_token");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -12,13 +18,13 @@ export function setupInterceptors() {
     return config;
   });
 
-  // ─── RESPONSE ───────────────────────────────────────────────────────────────
+  // ─── RESPONSE ─────────────────────────────────────────────────────────────
   apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
       if (error.response?.status === 401 && typeof window !== "undefined") {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("nombre_usuario");
+        storage.remove("access_token");
+        storage.remove("nombre_usuario");
         window.location.href = "/login";
       }
       return Promise.reject(error.response?.data ?? error);

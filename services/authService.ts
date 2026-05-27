@@ -1,4 +1,5 @@
 import apiClient from "@/lib/apiClient";
+import { storage } from "@/lib/storage";
 import {
   LoginPayload,
   LoginResponse,
@@ -7,40 +8,44 @@ import {
   WhoAmIResponse,
 } from "@/types/auth.types";
 
-// Registrar un nuevo usuario
+// Guarda token en localStorage Y en cookie
+function saveToken(token: string) {
+  storage.set("access_token", token);
+  document.cookie = `access_token=${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+}
+
+// Elimina token de localStorage y cookie
+function clearToken() {
+  storage.remove("access_token");
+  document.cookie = "access_token=; path=/; max-age=0";
+}
+
+// Registro de nuevo usuario
 export async function register(payload: RegisterPayload): Promise<RegisterResponse> {
   const { data } = await apiClient.post<RegisterResponse>("/auth/register", payload);
   return data;
 }
 
-// Iniciar sesión y almacenar el token en localStorage
+// Login y guarda el token de acceso
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
   const { data } = await apiClient.post<LoginResponse>("/auth/login", payload);
-
-  if (typeof window !== "undefined") {
-    localStorage.setItem("access_token", data.access_token);
-    localStorage.setItem("nombre_usuario", data.nombre);
-  }
-
+  saveToken(data.access_token);
   return data;
 }
 
-// Obtener información del usuario autenticado
+// Obtiene información del usuario autenticado
 export async function whoami(): Promise<WhoAmIResponse> {
   const { data } = await apiClient.get<WhoAmIResponse>("/auth/whoami");
   return data;
 }
 
-// Cerrar sesión eliminando el token del localStorage
+// Logout del usuario
 export function logout(): void {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("nombre_usuario");
-  }
+  clearToken();
 }
 
-// Verificar si el usuario está autenticado
+// Verifica si el usuario está autenticado
 export function isAuthenticated(): boolean {
   if (typeof window === "undefined") return false;
-  return !!localStorage.getItem("access_token");
+  return !!storage.get("access_token");
 }
