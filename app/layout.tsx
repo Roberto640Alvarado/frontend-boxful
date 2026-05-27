@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import InterceptorProvider from "@/lib/InterceptorProvider";
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,8 +15,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Boxful",
+  title: "boxful",
   description: "Plataforma de envíos Boxful",
+  icons: {
+    icon: "/boxful.png",
+  },
 };
 
 export default function RootLayout({
@@ -24,12 +28,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <InterceptorProvider>{children}</InterceptorProvider>
+    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+      <body className="">
+        <InterceptorProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </InterceptorProvider>
       </body>
     </html>
   );

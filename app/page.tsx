@@ -1,7 +1,5 @@
-export default function Home() {
-  return (
-    <>
-      MAMA MIA
-    </>
-  );
+import { redirect } from "next/navigation";
+
+export default function RootPage() {
+  redirect("/home");
 }
