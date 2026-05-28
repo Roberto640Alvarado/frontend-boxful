@@ -1,5 +1,4 @@
 import apiClient from "@/lib/apiClient";
-import { storage } from "@/lib/storage";
 
 let initialized = false;
 
@@ -7,18 +6,6 @@ export function setupInterceptors() {
   if (initialized) return;
   initialized = true;
 
-  // ─── REQUEST ──────────────────────────────────────────────────────────────
-  apiClient.interceptors.request.use((config) => {
-    if (typeof window !== "undefined") {
-      const token = storage.get("access_token");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    return config;
-  });
-
-  // ─── RESPONSE ─────────────────────────────────────────────────────────────
   apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -28,8 +15,6 @@ export function setupInterceptors() {
           window.location.pathname === "/register";
 
         if (!isAuthRoute) {
-          storage.remove("access_token");
-          storage.remove("nombre_usuario");
           window.location.href = "/login";
         }
       }

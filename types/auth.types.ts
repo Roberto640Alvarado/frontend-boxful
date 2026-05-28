@@ -4,10 +4,8 @@ export interface LoginPayload {
 }
 
 export interface LoginResponse {
-  access_token: string;
-  nombre: string;
+  ok: boolean;
 }
-
 export interface RegisterPayload {
   nombre: string;
   apellido: string;

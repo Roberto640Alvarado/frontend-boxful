@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createOrder } from "@/services/orderService";
 import { OrderDraft } from "@/app/(private)/home/page";
-import Toast from "@/components/Toast";
+import Toast from "@/components/ui/Toast";
 
 const inputStyle: React.CSSProperties = {
   background: "#ffffff",

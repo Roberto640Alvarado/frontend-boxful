@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import OrderForm from "@/components/OrderForm";
-import PackagesForm from "@/components/PackagesForm";
+import OrderForm from "@/components/forms/OrderForm";
+import PackagesForm from "@/components/forms/PackagesForm";
 
 export type OrderDraft = {
   direccionRecoleccion: string;

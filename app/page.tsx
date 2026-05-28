@@ -2,14 +2,15 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { storage } from "@/lib/storage";
+import { whoami } from "@/services/authService";
 
 export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = storage.get("access_token");
-    router.replace(token ? "/home" : "/login");
+    whoami()
+      .then(() => router.replace("/home"))
+      .catch(() => router.replace("/login"));
   }, [router]);
 
   return null;

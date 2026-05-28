@@ -10,7 +10,6 @@ import {
 import { useRouter } from "next/navigation";
 import { whoami, logout as logoutService } from "@/services/authService";
 import { WhoAmIResponse } from "@/types/auth.types";
-import { storage } from "@/lib/storage";
 
 interface AuthContextValue {
   user: WhoAmIResponse | null;
@@ -26,28 +25,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Al montar el componente, intenta obtener la información del usuario autenticado
   useEffect(() => {
-    const token = storage.get("access_token");
-    const request = token ? whoami().catch(() => null) : Promise.resolve(null);
-
-    request.then((data) => {
-      setUser(data);
-      setLoading(false);
-    });
+    whoami()
+      .then((data) => setUser(data))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
-  // Función para refetch de la información del usuario (útil después de login)
   const refetch = useCallback(async () => {
-    const token = storage.get("access_token");
-    const data = token ? await whoami().catch(() => null) : null;
-    setUser(data);
-    setLoading(false);
+    whoami()
+      .then((data) => setUser(data))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
-  // Función de logout limpia el token, el estado del usuario y redirige a login
-  const logout = useCallback(() => {
-    logoutService();
+  const logout = useCallback(async () => {
+    await logoutService();
     setUser(null);
     router.push("/login");
   }, [router]);

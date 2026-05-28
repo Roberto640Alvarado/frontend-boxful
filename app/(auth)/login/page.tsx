@@ -22,20 +22,21 @@ export default function LoginPage() {
 
   // Manejo del envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      await login(form);
-      await refetch();
-      router.push("/home");
-    } catch (err: unknown) {
-      const msg = (err as { message?: string })?.message ?? "Error al iniciar sesión";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
+  
+  try {
+    await login(form);
+    await refetch();
+    router.push("/home");
+  } catch (err: unknown) {
+    const msg = (err as { message?: string })?.message ?? "Error al iniciar sesión";
+    setError(msg);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <main className="flex w-full" style={{ height: "100vh", overflow: "hidden" }}>

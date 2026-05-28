@@ -6,6 +6,10 @@ const PUBLIC_ONLY_ROUTES = ["/login", "/register"];
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("access_token")?.value;
+  
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
 
   const isPrivate = PRIVATE_ROUTES.some((r) => pathname.startsWith(r));
   const isPublicOnly = PUBLIC_ONLY_ROUTES.some((r) => pathname.startsWith(r));

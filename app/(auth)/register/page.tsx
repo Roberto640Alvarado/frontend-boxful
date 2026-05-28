@@ -7,8 +7,8 @@ import Image from "next/image";
 import { register, login } from "@/services/authService";
 import { useAuth } from "@/context/AuthContext";
 import { RegisterPayload } from "@/types/auth.types";
-import ConfirmPhoneModal from "@/components/ConfirmPhoneModal";
-import Toast from "@/components/Toast";
+import ConfirmPhoneModal from "@/components/modals/ConfirmPhoneModal";
+import Toast from "@/components/ui/Toast";
 
 const EMPTY: RegisterPayload = {
   nombre: "",
