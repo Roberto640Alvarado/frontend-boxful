@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PRIVATE_ROUTES = ["/home", "/historial"];
+const PRIVATE_ROUTES = ["/home", "/history"];
 const PUBLIC_ONLY_ROUTES = ["/login", "/register"];
 
 export function proxy(request: NextRequest) {
@@ -9,6 +9,7 @@ export function proxy(request: NextRequest) {
 
   const isPrivate = PRIVATE_ROUTES.some((r) => pathname.startsWith(r));
   const isPublicOnly = PUBLIC_ONLY_ROUTES.some((r) => pathname.startsWith(r));
+  const isKnown = isPrivate || isPublicOnly;
 
   if (isPrivate && !token) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -18,9 +19,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/home", request.url));
   }
 
+  if (!isKnown) {
+    return NextResponse.redirect(
+      new URL(token ? "/home" : "/login", request.url)
+    );
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/home/:path*", "/historial/:path*", "/login", "/register"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

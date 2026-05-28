@@ -2,14 +2,12 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { storage } from "@/lib/storage";
 
-export default function RootPage() {
+export default function NotFound() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = storage.get("access_token");
-    router.replace(token ? "/home" : "/login");
+    router.replace("/");
   }, [router]);
 
   return null;

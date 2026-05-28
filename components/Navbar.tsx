@@ -57,7 +57,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
       </div>
 
       {/* Menú label */}
-      <p className="text-xs font-black text-gray-500 tracking-widest uppercase px-2 mb-3">
+      <p className="text-xs font-black text-gray-900 tracking-widest uppercase px-2 mb-3">
         Menú
       </p>
 

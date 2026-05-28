@@ -36,7 +36,7 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-gray-500">{label}</label>
+      <label className="text-xs font-medium text-gray-900">{label}</label>
       {children}
       {error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
     </div>
@@ -128,7 +128,7 @@ export default function OrderForm({
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8 w-full">
-      <h3 className="text-sm md:text-base font-semibold text-gray-800 mb-6">
+      <h3 className="text-sm md:text-base font-semibold text-gray-900 mb-6">
         Completa los datos
       </h3>
 
@@ -141,7 +141,7 @@ export default function OrderForm({
               <StyledInput
                 name="direccionRecoleccion"
                 type="text"
-                placeholder="Colonia Las Magnolias, calle militar 1, San Salvador"
+                placeholder=""
                 value={form.direccionRecoleccion}
                 onChange={handleChange}
                 hasError={!!errors.direccionRecoleccion}
@@ -165,7 +165,7 @@ export default function OrderForm({
             <StyledInput
               name="nombres"
               type="text"
-              placeholder="Gabriela Reneé"
+              placeholder=""
               value={form.nombres}
               onChange={handleChange}
               hasError={!!errors.nombres}
@@ -175,7 +175,7 @@ export default function OrderForm({
             <StyledInput
               name="apellidos"
               type="text"
-              placeholder="Días López"
+              placeholder=""
               value={form.apellidos}
               onChange={handleChange}
               hasError={!!errors.apellidos}
@@ -185,7 +185,7 @@ export default function OrderForm({
             <StyledInput
               name="correo"
               type="email"
-              placeholder="gabbydiaz@gmail.com"
+              placeholder=""
               value={form.correo}
               onChange={handleChange}
               hasError={!!errors.correo}
@@ -232,7 +232,7 @@ export default function OrderForm({
               <StyledInput
                 name="telefono"
                 type="tel"
-                placeholder="7777 7777"
+                placeholder="12345678"
                 value={form.telefono}
                 onChange={handleChange}
                 hasError={!!errors.telefono}
@@ -248,7 +248,7 @@ export default function OrderForm({
               <StyledInput
                 name="direccionDestinatario"
                 type="text"
-                placeholder="Final 49 Av. Sur y Bulevar Los Próceres, Bodega #8"
+                placeholder=""
                 value={form.direccionDestinatario}
                 onChange={handleChange}
                 hasError={!!errors.direccionDestinatario}
@@ -283,7 +283,7 @@ export default function OrderForm({
             <StyledInput
               name="puntoReferencia"
               type="text"
-              placeholder="Cerca de redondel Árbol de la Paz"
+              placeholder=""
               value={form.puntoReferencia}
               onChange={handleChange}
               hasError={!!errors.puntoReferencia}
@@ -296,7 +296,7 @@ export default function OrderForm({
           <StyledInput
             name="indicaciones"
             type="text"
-            placeholder="Llamar antes de entregar"
+            placeholder="Ejemplo: Llamar antes de entregar"
             value={form.indicaciones}
             onChange={handleChange}
           />

@@ -8,8 +8,8 @@ import { register, login } from "@/services/authService";
 import { useAuth } from "@/context/AuthContext";
 import { RegisterPayload } from "@/types/auth.types";
 import ConfirmPhoneModal from "@/components/ConfirmPhoneModal";
+import Toast from "@/components/Toast";
 
-// Payload inicial vacío para el formulario
 const EMPTY: RegisterPayload = {
   nombre: "",
   apellido: "",
@@ -68,6 +68,7 @@ function StyledInput(props: React.InputHTMLAttributes<HTMLInputElement> & { hasE
 }
 
 type FormErrors = Partial<Record<keyof RegisterPayload | "confirmPassword", string>>;
+type ToastState = { type: "success" | "error"; title: string; message?: string } | null;
 
 function EyeOpen() {
   return (
@@ -101,8 +102,8 @@ export default function RegisterPage() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [toast, setToast] = useState<ToastState>(null);
 
-  // Maneja cambios en inputs y selects, actualiza estado y limpia errores
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
@@ -110,7 +111,6 @@ export default function RegisterPage() {
     setApiError(null);
   };
 
-  // Función de validación devuelve un objeto con errores por campo
   const validate = (): FormErrors => {
     const e: FormErrors = {};
     if (!form.nombre.trim()) e.nombre = "El nombre es requerido";
@@ -140,7 +140,6 @@ export default function RegisterPage() {
     return e;
   };
 
-  // Al hacer click en "Siguiente"  valida y muestra modal
   const handleNextClick = (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
@@ -151,7 +150,6 @@ export default function RegisterPage() {
     setShowModal(true);
   };
 
-  // Al confirmar en el modal — llama a la API
   const handleConfirm = async () => {
     setShowModal(false);
     setLoading(true);
@@ -164,11 +162,21 @@ export default function RegisterPage() {
       await register(payload);
       await login({ correo: form.correo, password: form.password });
       await refetch();
-      router.push("/login");
+      setToast({
+        type: "success",
+        title: "¡Cuenta creada exitosamente!",
+        message: "Serás redirigido al inicio",
+      });
+      setTimeout(() => router.push("/login"), 3500);
     } catch (err: unknown) {
       const raw = (err as { message?: string | string[] })?.message;
       const msg = Array.isArray(raw) ? raw[0] : (raw ?? "Error al registrarse");
       setApiError(msg);
+      setToast({
+        type: "error",
+        title: "Error al crear cuenta",
+        message: msg,
+      });
     } finally {
       setLoading(false);
     }
@@ -183,6 +191,15 @@ export default function RegisterPage() {
 
   return (
     <>
+      {toast && (
+        <Toast
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       {showModal && (
         <ConfirmPhoneModal
           telefono={`+${codigoPais} ${form.telefono}`}
@@ -208,20 +225,14 @@ export default function RegisterPage() {
               {/* Nombre y Apellido */}
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Nombre" error={errors.nombre}>
-                  <StyledInput
-                    id="nombre" name="nombre" type="text"
-                    placeholder="Digita tu nombre"
-                    value={form.nombre} onChange={handleChange}
-                    hasError={!!errors.nombre}
-                  />
+                  <StyledInput id="nombre" name="nombre" type="text"
+                    placeholder="Digita tu nombre" value={form.nombre}
+                    onChange={handleChange} hasError={!!errors.nombre} />
                 </Field>
                 <Field label="Apellido" error={errors.apellido}>
-                  <StyledInput
-                    id="apellido" name="apellido" type="text"
-                    placeholder="Digita tu apellido"
-                    value={form.apellido} onChange={handleChange}
-                    hasError={!!errors.apellido}
-                  />
+                  <StyledInput id="apellido" name="apellido" type="text"
+                    placeholder="Digita tu apellido" value={form.apellido}
+                    onChange={handleChange} hasError={!!errors.apellido} />
                 </Field>
               </div>
 
@@ -229,13 +240,9 @@ export default function RegisterPage() {
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Sexo" error={errors.sexo}>
                   <div className="relative">
-                    <select
-                      id="sexo" name="sexo" value={form.sexo}
+                    <select id="sexo" name="sexo" value={form.sexo}
                       onChange={handleChange}
-                      style={{
-                        ...selectStyle,
-                        borderColor: errors.sexo ? "#f87171" : "#e5e7eb",
-                      }}
+                      style={{ ...selectStyle, borderColor: errors.sexo ? "#f87171" : "#e5e7eb" }}
                       onFocus={e => {
                         e.target.style.borderColor = errors.sexo ? "#f87171" : "#3b82f6";
                         e.target.style.boxShadow = "0 0 0 4px rgba(59,130,246,0.1)";
@@ -257,30 +264,24 @@ export default function RegisterPage() {
                   </div>
                 </Field>
                 <Field label="Fecha de nacimiento" error={errors.fechaNacimiento}>
-                  <StyledInput
-                    id="fechaNacimiento" name="fechaNacimiento" type="date"
+                  <StyledInput id="fechaNacimiento" name="fechaNacimiento" type="date"
                     value={form.fechaNacimiento} onChange={handleChange}
-                    hasError={!!errors.fechaNacimiento}
-                  />
+                    hasError={!!errors.fechaNacimiento} />
                 </Field>
               </div>
 
               {/* Correo y Teléfono */}
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Correo electrónico" error={errors.correo}>
-                  <StyledInput
-                    id="correo" name="correo" type="email"
+                  <StyledInput id="correo" name="correo" type="email"
                     autoComplete="email" placeholder="Digitar correo"
                     value={form.correo} onChange={handleChange}
-                    hasError={!!errors.correo}
-                  />
+                    hasError={!!errors.correo} />
                 </Field>
                 <Field label="Número de WhatsApp" error={errors.telefono}>
                   <div className="flex gap-2">
                     <div className="relative" style={{ width: "90px", flexShrink: 0 }}>
-                      <select
-                        value={codigoPais}
-                        onChange={e => setCodigoPais(e.target.value)}
+                      <select value={codigoPais} onChange={e => setCodigoPais(e.target.value)}
                         style={{ ...selectStyle, paddingRight: "24px" }}
                         onFocus={e => {
                           e.target.style.borderColor = "#3b82f6";
@@ -305,12 +306,9 @@ export default function RegisterPage() {
                         <path d="M6 9l6 6 6-6" />
                       </svg>
                     </div>
-                    <StyledInput
-                      id="telefono" name="telefono" type="tel"
-                      placeholder="7777 7777"
-                      value={form.telefono} onChange={handleChange}
-                      hasError={!!errors.telefono}
-                    />
+                    <StyledInput id="telefono" name="telefono" type="tel"
+                      placeholder="7777 7777" value={form.telefono}
+                      onChange={handleChange} hasError={!!errors.telefono} />
                   </div>
                 </Field>
               </div>
@@ -319,13 +317,10 @@ export default function RegisterPage() {
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Contraseña" error={errors.password}>
                   <div className="relative">
-                    <StyledInput
-                      id="password" name="password"
+                    <StyledInput id="password" name="password"
                       type={showPassword ? "text" : "password"}
-                      autoComplete="new-password"
-                      placeholder="Mín. 8 caracteres"
-                      value={form.password} onChange={handleChange}
-                      minLength={8}
+                      autoComplete="new-password" placeholder="Mín. 8 caracteres"
+                      value={form.password} onChange={handleChange} minLength={8}
                       hasError={!!errors.password}
                       style={{ ...inputStyle, paddingRight: "42px", borderColor: errors.password ? "#f87171" : "#e5e7eb" }}
                     />
@@ -337,11 +332,9 @@ export default function RegisterPage() {
                 </Field>
                 <Field label="Repetir contraseña" error={errors.confirmPassword}>
                   <div className="relative">
-                    <StyledInput
-                      id="confirmPassword" name="confirmPassword"
+                    <StyledInput id="confirmPassword" name="confirmPassword"
                       type={showConfirm ? "text" : "password"}
-                      autoComplete="new-password"
-                      placeholder="Repetir contraseña"
+                      autoComplete="new-password" placeholder="Repetir contraseña"
                       value={confirmPassword}
                       onChange={e => { setConfirmPassword(e.target.value); setErrors(prev => ({ ...prev, confirmPassword: undefined })); }}
                       hasError={!!errors.confirmPassword}

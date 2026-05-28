@@ -23,9 +23,15 @@ export function setupInterceptors() {
     (response) => response,
     (error) => {
       if (error.response?.status === 401 && typeof window !== "undefined") {
-        storage.remove("access_token");
-        storage.remove("nombre_usuario");
-        window.location.href = "/login";
+        const isAuthRoute =
+          window.location.pathname === "/login" ||
+          window.location.pathname === "/register";
+
+        if (!isAuthRoute) {
+          storage.remove("access_token");
+          storage.remove("nombre_usuario");
+          window.location.href = "/login";
+        }
       }
       return Promise.reject(error.response?.data ?? error);
     }
