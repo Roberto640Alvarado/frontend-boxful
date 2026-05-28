@@ -22,6 +22,8 @@ export interface CreateOrderPayload {
   municipio: string;
   puntoReferencia?: string;
   indicaciones?: string;
+  isCOD?: boolean;
+  expectedAmount?: number;
   paquetes: Paquete[];
 }
 
@@ -42,6 +44,10 @@ export interface CreateOrderResponse {
     indicaciones?: string;
     cantidadPaquetes: number;
     paquetes: PaqueteResponse[];
+    isCOD: boolean;
+    expectedAmount?: number;
+    shippingCost?: number;
+    status: "pending" | "delivered";
     creadoEn: string;
   };
 }
@@ -68,4 +74,8 @@ export interface OrderHistoryResponse {
     fechaFin?: string;
   };
   ordenes: OrderSummary[];
+}
+
+export interface BalanceResponse {
+  balance: number;
 }

@@ -18,6 +18,8 @@ export type OrderDraft = {
   municipio: string;
   puntoReferencia: string;
   indicaciones: string;
+  isCOD: boolean;
+  expectedAmount: number;
 };
 
 export default function HomePage() {
@@ -30,9 +32,20 @@ export default function HomePage() {
     setStep(2);
   };
 
+  const handleBack = () => {
+    // Mantiene los datos del draft al regresar
+    setStep(1);
+  };
+
+  const handleReset = () => {
+    // Limpia todo para crear una nueva orden
+    setOrderDraft(null);
+    setStep(1);
+    sessionStorage.removeItem("order_paquetes");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-
       {/* Top bar */}
       <div className="bg-white border-b border-gray-100 px-6 md:px-10 py-4 flex items-center justify-between">
         <h1 className="text-base md:text-lg font-semibold text-gray-800">Crear orden</h1>
@@ -53,11 +66,20 @@ export default function HomePage() {
           y{" "}
           <strong className="text-gray-700">el día siguiente</strong>{" "}
           a nivel nacional.
-        </p >
+        </p>
 
-        {step === 1 && <OrderForm onNext={handleOrderNext} />}
+        {step === 1 && (
+          <OrderForm
+            onNext={handleOrderNext}
+            initialData={orderDraft}  
+          />
+        )}
         {step === 2 && orderDraft && (
-          <PackagesForm orderDraft={orderDraft} onBack={() => setStep(1)} />
+          <PackagesForm
+            orderDraft={orderDraft}
+            onBack={handleBack}
+            onCreateAnother={handleReset} 
+          />
         )}
       </div>
     </div>

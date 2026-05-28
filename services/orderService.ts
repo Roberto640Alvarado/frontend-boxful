@@ -4,6 +4,7 @@ import {
   CreateOrderResponse,
   OrderHistoryParams,
   OrderHistoryResponse,
+  BalanceResponse,
 } from "@/types/order.types";
 
 // Crear una nueva orden de recolección de paquetes
@@ -20,5 +21,11 @@ export async function getOrderHistory(params: OrderHistoryParams = {}): Promise<
       ...(params.fechaFin && { fechaFin: params.fechaFin }),
     },
   });
+  return data;
+}
+
+// Obtener el monto acumulado a liquidar del usuario autenticado
+export async function getBalance(): Promise<BalanceResponse> {
+  const { data } = await apiClient.get<BalanceResponse>("/orders/balance");
   return data;
 }

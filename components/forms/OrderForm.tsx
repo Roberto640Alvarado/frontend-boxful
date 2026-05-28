@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { OrderDraft } from "@/app/(private)/home/page";
 
-// Estilos base para inputs y selects
 const inputStyle: React.CSSProperties = {
   background: "#ffffff",
   border: "1.5px solid #e5e7eb",
@@ -44,7 +43,7 @@ function Field({
 }
 
 function StyledInput(
-  props: React.InputHTMLAttributes<HTMLInputElement> & { hasError?: boolean }
+  props: React.InputHTMLAttributes<HTMLInputElement> & { hasError?: boolean },
 ) {
   const { hasError, style, ...rest } = props;
   return (
@@ -80,24 +79,36 @@ const INITIAL: OrderDraft = {
   municipio: "",
   puntoReferencia: "",
   indicaciones: "",
+  isCOD: false,
+  expectedAmount: 0,
 };
 
 type FormErrors = Partial<Record<keyof OrderDraft, string>>;
 
 export default function OrderForm({
-  onNext,
+  onNext, initialData,
 }: {
   onNext: (data: OrderDraft) => void;
+  initialData?: OrderDraft | null;
 }) {
-  const [form, setForm] = useState<OrderDraft>(INITIAL);
+  const [form, setForm] = useState<OrderDraft>(initialData ?? INITIAL);
   const [errors, setErrors] = useState<FormErrors>({});
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
+  const handleToggleCOD = () => {
+    setForm((prev) => ({
+      ...prev,
+      isCOD: !prev.isCOD,
+      expectedAmount: !prev.isCOD ? prev.expectedAmount : 0,
+    }));
+    setErrors((prev) => ({ ...prev, expectedAmount: undefined }));
   };
 
   const validate = (): FormErrors => {
@@ -110,10 +121,13 @@ export default function OrderForm({
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo))
       e.correo = "Correo inválido";
     if (!form.telefono.trim()) e.telefono = "Requerido";
-    if (!form.direccionDestinatario.trim()) e.direccionDestinatario = "Requerido";
+    if (!form.direccionDestinatario.trim())
+      e.direccionDestinatario = "Requerido";
     if (!form.departamento.trim()) e.departamento = "Requerido";
     if (!form.municipio.trim()) e.municipio = "Requerido";
     if (!form.puntoReferencia.trim()) e.puntoReferencia = "Requerido";
+    if (form.isCOD && (!form.expectedAmount || form.expectedAmount <= 0))
+      e.expectedAmount = "Ingresa un monto válido";
     return e;
   };
 
@@ -133,15 +147,16 @@ export default function OrderForm({
       </h3>
 
       <div className="flex flex-col gap-5">
-
-        {/* Fila 1: Dirección  + Fecha  */}
+        {/* Fila 1: Dirección + Fecha */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
           <div className="md:col-span-2">
-            <Field label="Dirección de recolección" error={errors.direccionRecoleccion}>
+            <Field
+              label="Dirección de recolección"
+              error={errors.direccionRecoleccion}
+            >
               <StyledInput
                 name="direccionRecoleccion"
                 type="text"
-                placeholder=""
                 value={form.direccionRecoleccion}
                 onChange={handleChange}
                 hasError={!!errors.direccionRecoleccion}
@@ -165,7 +180,6 @@ export default function OrderForm({
             <StyledInput
               name="nombres"
               type="text"
-              placeholder=""
               value={form.nombres}
               onChange={handleChange}
               hasError={!!errors.nombres}
@@ -175,7 +189,6 @@ export default function OrderForm({
             <StyledInput
               name="apellidos"
               type="text"
-              placeholder=""
               value={form.apellidos}
               onChange={handleChange}
               hasError={!!errors.apellidos}
@@ -185,7 +198,6 @@ export default function OrderForm({
             <StyledInput
               name="correo"
               type="email"
-              placeholder=""
               value={form.correo}
               onChange={handleChange}
               hasError={!!errors.correo}
@@ -193,12 +205,17 @@ export default function OrderForm({
           </Field>
         </div>
 
-        {/* Fila 3: Teléfono + Dirección destinatario  */}
+        {/* Fila 3: Teléfono + Dirección destinatario */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-gray-500">Teléfono</label>
+            <label className="text-xs font-medium text-gray-500">
+              Teléfono
+            </label>
             <div className="flex gap-1.5">
-              <div className="relative" style={{ width: "76px", flexShrink: 0 }}>
+              <div
+                className="relative"
+                style={{ width: "76px", flexShrink: 0 }}
+              >
                 <select
                   name="codigoPais"
                   value={form.codigoPais}
@@ -223,8 +240,14 @@ export default function OrderForm({
                 </select>
                 <svg
                   className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400"
-                  width="11" height="11" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
                   <path d="M6 9l6 6 6-6" />
                 </svg>
@@ -234,6 +257,7 @@ export default function OrderForm({
                 type="tel"
                 placeholder="12345678"
                 value={form.telefono}
+                maxLength={8}
                 onChange={handleChange}
                 hasError={!!errors.telefono}
               />
@@ -242,13 +266,14 @@ export default function OrderForm({
               <p className="text-xs text-red-500 mt-0.5">{errors.telefono}</p>
             )}
           </div>
-
           <div className="md:col-span-2">
-            <Field label="Dirección del destinatario" error={errors.direccionDestinatario}>
+            <Field
+              label="Dirección del destinatario"
+              error={errors.direccionDestinatario}
+            >
               <StyledInput
                 name="direccionDestinatario"
                 type="text"
-                placeholder=""
                 value={form.direccionDestinatario}
                 onChange={handleChange}
                 hasError={!!errors.direccionDestinatario}
@@ -283,7 +308,6 @@ export default function OrderForm({
             <StyledInput
               name="puntoReferencia"
               type="text"
-              placeholder=""
               value={form.puntoReferencia}
               onChange={handleChange}
               hasError={!!errors.puntoReferencia}
@@ -302,6 +326,118 @@ export default function OrderForm({
           />
         </Field>
 
+        {/* Fila 6: COD */}
+        <div
+          className="rounded-xl p-4"
+          style={{
+            background: form.isCOD ? "#fff7ed" : "#f9fafb",
+            border: `1.5px solid ${form.isCOD ? "#fed7aa" : "#e5e7eb"}`,
+            transition: "all 0.2s",
+          }}
+        >
+          <div className="flex items-start justify-between gap-4">
+            {/* Texto + input */}
+            <div className="flex flex-col gap-2 flex-1">
+              <p className="text-sm font-semibold text-gray-800">
+                Pago contra entrega (PCE)
+              </p>
+
+              <div className="flex items-center gap-4">
+                <p className="text-xs text-gray-500">
+                  Tu cliente paga el{" "}
+                  <strong className="text-gray-700">monto que indiques</strong>{" "}
+                  al momento de la entrega
+                </p>
+
+                {/* Input monto — solo visible si COD activo */}
+                {form.isCOD && (
+                  <div
+                    className="flex items-center flex-shrink-0"
+                    style={{
+                      background: "#fff",
+                      border: `1.5px solid ${errors.expectedAmount ? "#f87171" : "#e5e7eb"}`,
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                      width: "140px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                    }}
+                  >
+                    <span
+                      className="text-sm font-semibold text-gray-500 px-3 py-2.5"
+                      style={{ borderRight: "1.5px solid #e5e7eb" }}
+                    >
+                      $
+                    </span>
+                    <input
+                      name="expectedAmount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="00.00"
+                      value={form.expectedAmount || ""}
+                      onChange={(e) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          expectedAmount: parseFloat(e.target.value) || 0,
+                        }));
+                        setErrors((prev) => ({
+                          ...prev,
+                          expectedAmount: undefined,
+                        }));
+                      }}
+                      style={{
+                        border: "none",
+                        outline: "none",
+                        padding: "9px 10px",
+                        fontSize: "13px",
+                        color: "#111",
+                        background: "transparent",
+                        width: "100%",
+                      }}
+                    />
+                  </div>
+                )}
+
+                {errors.expectedAmount && (
+                  <p className="text-xs text-red-500">
+                    {errors.expectedAmount}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Toggle */}
+            <button
+              type="button"
+              onClick={handleToggleCOD}
+              className="relative flex-shrink-0 self-start"
+              style={{
+                width: "44px",
+                height: "24px",
+                borderRadius: "999px",
+                background: form.isCOD ? "#22c55e" : "#d1d5db",
+                border: "none",
+                cursor: "pointer",
+                transition: "background 0.2s",
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: "3px",
+                  left: form.isCOD ? "23px" : "3px",
+                  width: "18px",
+                  height: "18px",
+                  borderRadius: "50%",
+                  background: "#fff",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                  transition: "left 0.2s",
+                }}
+              />
+            </button>
+          </div>
+        </div>
+
         {/* Botón Siguiente */}
         <div className="flex justify-end mt-2">
           <button
@@ -312,15 +448,20 @@ export default function OrderForm({
           >
             Siguiente
             <svg
-              width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
               <line x1="5" y1="12" x2="19" y2="12" />
               <polyline points="12 5 19 12 12 19" />
             </svg>
           </button>
         </div>
-
       </div>
     </div>
   );

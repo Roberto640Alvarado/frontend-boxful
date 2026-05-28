@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createOrder } from "@/services/orderService";
 import { OrderDraft } from "@/app/(private)/home/page";
 import Toast from "@/components/ui/Toast";
+import OrderSuccessModal from "@/components/modals/OrderSuccessModal";
 
 const inputStyle: React.CSSProperties = {
   background: "#ffffff",
@@ -78,10 +79,14 @@ function DimInput({ label, name, value, onChange }: {
         <input
           name={name}
           type="number"
-          min="0"
+          min="0"  
           placeholder="15"
           value={value || ""}
-          onChange={onChange}
+          onChange={(e) => {
+            // validación extra por si el usuario tipea negativo
+            if (Number(e.target.value) < 0) return;
+            onChange(e);
+          }}
           style={{
             width: "44px",
             padding: "9px 6px 9px 10px",
@@ -114,20 +119,38 @@ function DimInput({ label, name, value, onChange }: {
 
 export default function PackagesForm({
   orderDraft,
-  onBack,
+  onBack, 
+  onCreateAnother,
 }: {
   orderDraft: OrderDraft;
   onBack: () => void;
+  onCreateAnother: () => void;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<Paquete>({ ...EMPTY_PAQUETE });
-  const [paquetes, setPaquetes] = useState<Paquete[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false); 
+  const [paquetes, setPaquetes] = useState<Paquete[]>(() => {
+  try {
+    const saved = sessionStorage.getItem("order_paquetes");
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+});
+
+useEffect(() => {
+  try {
+    sessionStorage.setItem("order_paquetes", JSON.stringify(paquetes));
+  } catch {}
+}, [paquetes]);
 
   const handleDraftChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
+    // validación negativos para peso
+    if (type === "number" && Number(value) < 0) return;
     setDraft((prev) => ({
       ...prev,
       [name]: type === "number" ? Number(value) : value,
@@ -157,20 +180,16 @@ export default function PackagesForm({
     setLoading(true);
     setError(null);
     try {
-      const { codigoPais, telefono, ...rest } = orderDraft;
+      const { codigoPais, telefono, isCOD, expectedAmount, ...rest } = orderDraft;
       await createOrder({
         ...rest,
         telefono: `+${codigoPais}${telefono.replace(/\s/g, "")}`,
         paquetes,
+        isCOD,
+        ...(isCOD && { expectedAmount }),
       });
 
-      setToast({
-        type: "success",
-        title: "¡Orden creada exitosamente!",
-        message: "Tu orden fue registrada y está en proceso.",
-      });
-
-      setTimeout(() => router.push("/history"), 3500);
+      setShowSuccessModal(true); 
     } catch (err: unknown) {
       const raw = (err as { message?: string | string[] })?.message;
       const msg = Array.isArray(raw) ? raw[0] : (raw ?? "Error al crear la orden");
@@ -187,6 +206,15 @@ export default function PackagesForm({
 
   return (
     <>
+      {/* Modal de éxito */}
+      {showSuccessModal && (
+        <OrderSuccessModal
+          onGoHistory={() => router.push("/history")}
+          onCreateAnother={onCreateAnother}
+        />
+      )}
+
+      {/* Toast solo para errores */}
       {toast && (
         <Toast
           type={toast.type}
