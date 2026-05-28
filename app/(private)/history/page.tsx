@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getOrderHistory } from "@/services/orderService";
+import { getOrderHistory, getBalance } from "@/services/orderService";
 import { OrderHistoryResponse, OrderSummary } from "@/types/order.types";
 import { exportToCsv } from "@/utils/exportCsv";
 
@@ -26,35 +26,31 @@ function TruncatedCell({ text }: { text: string }) {
   );
 }
 
-function getDefaultFechaInicio() {
-  const now = new Date();
-  return `${now.getFullYear()}-01-01`;
-}
-
-function getDefaultFechaFin() {
-  return new Date().toISOString().split("T")[0];
-}
-
 export default function HistorialPage() {
   const { user } = useAuth();
   const [data, setData] = useState<OrderHistoryResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [buscado, setBuscado] = useState(false);
 
-  // Valores aplicados 
-  const [fechaInicioActiva, setFechaInicioActiva] = useState(
-    getDefaultFechaInicio,
-  );
-  const [fechaFinActiva, setFechaFinActiva] = useState(getDefaultFechaFin);
-
-  // Valores del input 
-  const [fechaInicioInput, setFechaInicioInput] = useState(
-    getDefaultFechaInicio,
-  );
-  const [fechaFinInput, setFechaFinInput] = useState(getDefaultFechaFin);
-
+  const [fechaInicioInput, setFechaInicioInput] = useState("");
+  const [fechaFinInput, setFechaFinInput] = useState("");
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
+
+  // Polling balance cada 30 segundos
+  useEffect(() => {
+    const fetchBalance = () => {
+      getBalance()
+        .then((res) => setBalance(res.balance))
+        .catch(() => setBalance(null));
+    };
+
+    fetchBalance();
+    const interval = setInterval(fetchBalance, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleDescargar = () => {
     const seleccionadas =
@@ -73,55 +69,39 @@ export default function HistorialPage() {
     );
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    getOrderHistory({
-      ...(fechaInicioActiva && { fechaInicio: fechaInicioActiva }),
-      ...(fechaFinActiva && { fechaFin: fechaFinActiva }),
-    })
-      .then((res) => {
-        if (!cancelled) {
-          setData(res);
-          setError(null);
-          setLoading(false);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          const msg =
-            (err as { message?: string })?.message ??
-            "Error al cargar historial";
-          setError(msg);
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [fechaInicioActiva, fechaFinActiva]);
-
   const handleBuscar = () => {
     setLoading(true);
     setError(null);
-    setFechaInicioActiva(fechaInicioInput);
-    setFechaFinActiva(fechaFinInput);
     setSelectedRows(new Set());
     setSelectAll(false);
+    setBuscado(true);
+
+    getOrderHistory({
+      ...(fechaInicioInput && { fechaInicio: fechaInicioInput }),
+      ...(fechaFinInput && { fechaFin: fechaFinInput }),
+    })
+      .then((res) => {
+        setData(res);
+        setError(null);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        const msg =
+          (err as { message?: string })?.message ?? "Error al cargar historial";
+        setError(msg);
+        setLoading(false);
+      });
   };
 
   const handleClear = () => {
-    const inicio = getDefaultFechaInicio();
-    const fin = getDefaultFechaFin();
-    setFechaInicioInput(inicio);
-    setFechaFinInput(fin);
-    setFechaInicioActiva(inicio);
-    setFechaFinActiva(fin);
+    setFechaInicioInput("");
+    setFechaFinInput("");
     setSelectedRows(new Set());
     setSelectAll(false);
+    setData(null);
+    setBuscado(false);
+    setError(null);
   };
-
-  const hasChanges =
-    fechaInicioInput !== fechaInicioActiva || fechaFinInput !== fechaFinActiva;
 
   const toggleRow = (id: number) => {
     setSelectedRows((prev) => {
@@ -147,27 +127,55 @@ export default function HistorialPage() {
         <h1 className="text-base md:text-lg font-semibold text-gray-800">
           Mis <strong>envíos</strong>
         </h1>
-        {user && (
-          <span className="text-sm font-medium text-gray-600">
-            {user.nombre} {user.apellido}
-          </span>
-        )}
+
+        <div className="flex items-center gap-3">
+          {balance !== null && (
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+              style={{
+                background: "#f0fdf4",
+                border: "1.5px solid #bbf7d0",
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g clipPath="url(#clip0_hist)">
+                  <path d="M18 4H6C3.79 4 2 5.79 2 8V16C2 18.21 3.79 20 6 20H18C20.21 20 22 18.21 22 16V8C22 5.79 20.21 4 18 4ZM16.14 13.77C15.9 13.97 15.57 14.05 15.26 13.97L4.15 11.25C4.45 10.52 5.16 10 6 10H18C18.67 10 19.26 10.34 19.63 10.84L16.14 13.77ZM6 6H18C19.1 6 20 6.9 20 8V8.55C19.41 8.21 18.73 8 18 8H6C5.27 8 4.59 8.21 4 8.55V8C4 6.9 4.9 6 6 6Z" fill="#1A5656"/>
+                </g>
+                <defs>
+                  <clipPath id="clip0_hist">
+                    <rect width="24" height="24" fill="white"/>
+                  </clipPath>
+                </defs>
+              </svg>
+              <span className="text-xs font-medium text-green-700">
+                Monto a liquidar{" "}
+                <strong className="text-green-800">
+                  $ {balance.toFixed(2)}
+                </strong>
+              </span>
+            </div>
+          )}
+
+          {user && (
+            <span className="text-sm font-medium text-gray-600">
+              {user.nombre} {user.apellido}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Content */}
       <div className="px-6 md:px-10 py-6 md:py-8">
         {/* Filtros */}
         <div className="flex flex-wrap items-center gap-3 mb-6">
-          {/* Rango de fecha */}
           <div
             className="flex items-center gap-2"
             style={{
               background: "#fff",
-              border: `1.5px solid ${hasChanges ? "#3b5bdb" : "#e5e7eb"}`,
+              border: "1.5px solid #e5e7eb",
               borderRadius: "8px",
               padding: "8px 12px",
               boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-              transition: "border-color 0.2s",
             }}
           >
             <input
@@ -199,7 +207,6 @@ export default function HistorialPage() {
             />
           </div>
 
-          {/* Botón Buscar */}
           <button
             onClick={handleBuscar}
             className="text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
@@ -214,7 +221,6 @@ export default function HistorialPage() {
             Buscar
           </button>
 
-          {/* Botón Descargar */}
           <button
             onClick={handleDescargar}
             disabled={selectedRows.size === 0}
@@ -232,7 +238,6 @@ export default function HistorialPage() {
             Descargar órdenes
           </button>
 
-          {/* Limpiar filtros */}
           <button
             onClick={handleClear}
             className="text-sm text-gray-400 hover:text-gray-600 transition-colors underline"
@@ -248,48 +253,45 @@ export default function HistorialPage() {
           </p>
         )}
 
+        {/* Estado inicial - esperando búsqueda */}
+        {!buscado && !loading && (
+          <div className="flex flex-col items-center justify-center py-24 gap-2 text-gray-400">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <p className="text-sm">Ingresa un rango de fechas y presiona Buscar</p>
+          </div>
+        )}
+
         {/* Loading */}
-        {loading ? (
+        {loading && (
           <div className="flex flex-col items-center justify-center py-24 gap-3 text-gray-400">
-            <svg
-              className="animate-spin"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path
-                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                strokeOpacity="0.25"
-              />
+            <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeOpacity="0.25" />
               <path d="M21 12a9 9 0 00-9-9" />
             </svg>
             <p className="text-sm">Cargando órdenes…</p>
           </div>
-        ) : data?.ordenes.length === 0 ? (
+        )}
+
+        {/* Sin resultados */}
+        {buscado && !loading && data?.ordenes.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 gap-2 text-gray-400">
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
             <p className="text-sm">No hay órdenes en este período</p>
           </div>
-        ) : (
+        )}
+
+        {/* Tabla */}
+        {buscado && !loading && data && data.ordenes.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <table
-              className="w-full"
-              style={{ borderCollapse: "collapse", tableLayout: "fixed" }}
-            >
+            <table className="w-full" style={{ borderCollapse: "collapse", tableLayout: "fixed" }}>
               <colgroup>
                 <col style={{ width: "40px" }} />
                 <col style={{ width: "130px" }} />
@@ -309,31 +311,20 @@ export default function HistorialPage() {
                       style={{ cursor: "pointer", accentColor: "#3b5bdb" }}
                     />
                   </th>
-                  {[
-                    "No. de orden",
-                    "Nombre",
-                    "Apellidos",
-                    "Departamento",
-                    "Municipio",
-                  ].map((col) => (
-                    <th
-                      key={col}
-                      className="px-4 py-3 text-left text-xs font-bold text-gray-900"
-                      style={{ whiteSpace: "nowrap" }}
-                    >
+                  {["No. de orden", "Nombre", "Apellidos", "Departamento", "Municipio"].map((col) => (
+                    <th key={col} className="px-4 py-3 text-left text-xs font-bold text-gray-900"
+                      style={{ whiteSpace: "nowrap" }}>
                       {col}
                     </th>
                   ))}
-                  <th
-                    className="px-4 py-3 text-center text-xs font-bold text-gray-900"
-                    style={{ whiteSpace: "nowrap" }}
-                  >
+                  <th className="px-4 py-3 text-center text-xs font-bold text-gray-900"
+                    style={{ whiteSpace: "nowrap" }}>
                     Paquetes en orden
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {data?.ordenes.map((order: OrderSummary) => {
+                {data.ordenes.map((order: OrderSummary) => {
                   const isSelected = selectedRows.has(order.numeroOrden);
                   return (
                     <tr

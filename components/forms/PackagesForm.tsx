@@ -189,6 +189,7 @@ useEffect(() => {
         ...(isCOD && { expectedAmount }),
       });
 
+      sessionStorage.removeItem("order_paquetes");
       setShowSuccessModal(true); 
     } catch (err: unknown) {
       const raw = (err as { message?: string | string[] })?.message;
