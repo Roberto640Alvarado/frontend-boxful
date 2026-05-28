@@ -53,7 +53,7 @@ export default function HomePage() {
           y{" "}
           <strong className="text-gray-700">el día siguiente</strong>{" "}
           a nivel nacional.
-        </p>
+        </p >
 
         {step === 1 && <OrderForm onNext={handleOrderNext} />}
         {step === 2 && orderDraft && (
